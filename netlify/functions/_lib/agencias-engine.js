@@ -35,7 +35,7 @@ function resolveCity(raw, provinciaRaw) {
 }
 
 const STOPWORDS = {};
-('DE DEL LA EL LOS LAS Y EN A SN S N NO NRO NUMERO CALLE AV AVENIDA AVDA VIA ' +
+('DE DEL LA EL LOS LAS Y EN A SN S N NO NRO NUMERO CALLE AV AVE AVENIDA AVDA VIA ' +
   'BARRIO SECTOR PARROQUIA CIUDAD ESQUINA ENTRE ATRAS DETRAS CERCA LADO JUNTO ' +
   'FRENTE DIAGONAL REF REFERENCIA DOMICILIO OFICINA PRINCIPAL SERVIENTREGA ' +
   'AGENCIA ENTREGA CASA EDIFICIO LOCAL PISO TORRE CDLA CIUDADELA URB ' +
@@ -43,11 +43,24 @@ const STOPWORDS = {};
   'CON RECAUDO SIN CLIENTE PEDIDO ORDEN GUIA TRANSPORTADORA DESTINO')
   .split(' ').forEach((w) => { STOPWORDS[w] = true; });
 
+// Los números de calle/avenida ("Calle 13", "Ave 21 y 22") son la parte más
+// específica de una dirección ecuatoriana — se conservan aunque sean cortos.
+// Las palabras de texto siguen filtrando conectores y requieren 3+ letras
+// (antes 4) para no perder nombres cortos de calles/sectores.
 function tokenize(s, minLen) {
-  minLen = minLen || 4;
-  return normCity(s).split(' ').filter((t) => t.length >= minLen && !STOPWORDS[t]);
+  minLen = minLen || 3;
+  return normCity(s).split(' ').filter((t) => {
+    if (!t) return false;
+    if (/^\d+$/.test(t)) return true; // número de calle/avenida: siempre se conserva
+    return t.length >= minLen && !STOPWORDS[t];
+  });
 }
 function normNoSpace(s) { return normCity(s).replace(/\s+/g, ''); }
+
+function tokenWeight(t) {
+  if (/^\d+$/.test(t)) return t.length >= 2 ? 3 : 1; // número específico (ej. "13", "22") pesa más
+  return 2; // palabra de texto (nombre de calle, sector, etc.)
+}
 
 function scoreAgency(orderText, agency) {
   const orderToks = {};
@@ -59,15 +72,33 @@ function scoreAgency(orderText, agency) {
   agencyToks.forEach((t) => {
     if (seen[t]) return;
     seen[t] = true;
-    if (orderToks[t]) overlap++;
-    if (t.length >= 5 && orderNoSpace.indexOf(t) !== -1) substrBonus++;
+    if (orderToks[t]) overlap += tokenWeight(t);
+    if (!/^\d+$/.test(t) && t.length >= 5 && orderNoSpace.indexOf(t) !== -1) substrBonus++;
   });
-  return overlap * 2 + substrBonus;
+  return overlap + substrBonus;
 }
 
 function rankAgencies(orderText, pool) {
   return pool.map((a) => ({ score: scoreAgency(orderText, a), agency: a }))
     .sort((x, y) => y.score - x.score);
+}
+
+// Coincidencia parcial de respaldo: cuenta cuántas palabras/números del texto
+// libre aparecen en la agencia, sin exigir que estén TODOS presentes (a
+// diferencia de una búsqueda por subcadena estricta). Útil cuando el agente
+// escribió una referencia con datos que no calzan 100% (p. ej. "entre Ave.
+// 22 y 23" cuando la agencia registra "Ave 21 y 22") — al menos "22" coincide.
+function partialMatch(orderText, pool) {
+  const terms = tokenize(orderText);
+  if (!terms.length) return [];
+  return pool.map((a) => {
+    const hay = tokenize(a.direccion + ' ' + a.sucursal + ' ' + a.ciudad);
+    const haySet = {};
+    hay.forEach((t) => { haySet[t] = true; });
+    let hits = 0;
+    terms.forEach((t) => { if (haySet[t]) hits++; });
+    return { agency: a, hits };
+  }).filter((r) => r.hits > 0).sort((a, b) => b.hits - a.hits);
 }
 
 // Solo se consideran agencias registradas en Dropi para resolución automática o candidatas a revisar.
@@ -81,8 +112,11 @@ function bestAgencyMatch(orderText, city) {
   const scored = rankAgencies(orderText, pool);
   const topScore = scored[0].score;
   if (topScore === 0) {
-    const alpha = scored.slice().sort((a, b) => a.agency.sucursal.localeCompare(b.agency.sucursal));
-    return { match: null, candidates: alpha.slice(0, 5).map((s) => s.agency), totalEnCiudad: pool.length, method: 'sin_coincidencia_texto' };
+    const partial = partialMatch(orderText, pool);
+    const candidates = partial.length
+      ? partial.slice(0, 5).map((p) => p.agency)
+      : scored.slice().sort((a, b) => a.agency.sucursal.localeCompare(b.agency.sucursal)).slice(0, 5).map((s) => s.agency);
+    return { match: null, candidates, totalEnCiudad: pool.length, method: 'sin_coincidencia_texto' };
   }
   const tied = scored.filter((s) => s.score === topScore);
   if (tied.length > 1) {
@@ -132,5 +166,5 @@ function toPublic(item) {
 
 module.exports = {
   DATA, normCity, resolveCity, tokenize, scoreAgency, rankAgencies, bestAgencyMatch,
-  normText, haversineKm, parseCoords, toPublic,
+  normText, haversineKm, parseCoords, toPublic, partialMatch,
 };

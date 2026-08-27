@@ -43,6 +43,14 @@ textarea{min-height:90px;resize:vertical;}
 .banner.ok{background:var(--ok-bg);color:var(--ok-ink);}
 .hint{font-size:.78rem;color:var(--text-faint);margin-top:.25rem;}
 .hint.err{color:var(--alert-ink);}
+.note-inline{font-weight:400;color:var(--text-faint);font-size:.78rem;}
+.field-with-copy{display:flex;gap:.4rem;align-items:stretch;}
+.field-with-copy input,.field-with-copy select{flex:1;}
+.copy-icon-btn{flex:none;border:1px solid var(--border);background:var(--card);border-radius:8px;padding:0 .6rem;cursor:pointer;font-size:1rem;color:var(--text-faint);}
+.copy-icon-btn:hover{color:var(--text);}
+.rank-badge{display:inline-flex;align-items:center;justify-content:center;width:1.4rem;height:1.4rem;border-radius:999px;background:var(--accent);color:#fff;font-size:.72rem;font-weight:700;margin-right:.4rem;}
+.card-copy-row{display:flex;align-items:center;gap:.5rem;margin:.3rem 0;}
+.card-addr-copy-btn{flex:none;font-size:.72rem;padding:.2rem .5rem;border-radius:6px;border:1px solid var(--border);background:var(--card);cursor:pointer;}
 .match-card{margin-top:1rem;border:1px solid var(--border);border-radius:10px;padding:.9rem 1rem;background:var(--card);}
 .match-card h3{margin:0 0 .5rem;font-size:.9rem;}
 .match-card ul{list-style:none;margin:0;padding:0;}
@@ -112,17 +120,26 @@ th{background:#00000008;}
 
       <div class="row">
         <div>
-          <label id="lblCiudad">Ciudad con la que llegó el pedido</label>
-          <input type="text" id="declCiudad" placeholder="" disabled>
+          <label id="lblCiudad">Ciudad</label>
+          <div class="field-with-copy">
+            <input type="text" id="declCiudad" list="declCiudadList" placeholder="" disabled>
+            <button type="button" class="copy-icon-btn" data-copy-target="declCiudad" title="Copiar">⧉</button>
+          </div>
+          <datalist id="declCiudadList"></datalist>
         </div>
         <div>
-          <label id="lblDepto">Departamento / estado con el que llegó el pedido</label>
-          <input type="text" id="declDepto" placeholder="" disabled>
+          <label id="lblDepto">Departamento</label>
+          <div class="field-with-copy">
+            <input type="text" id="declDepto" list="declDeptoList" placeholder="" disabled>
+            <button type="button" class="copy-icon-btn" data-copy-target="declDepto" title="Copiar">⧉</button>
+          </div>
+          <datalist id="declDeptoList"></datalist>
         </div>
       </div>
       <div class="hint" id="autofillNote"></div>
+      <div class="hint err" id="radarValidationMsg"></div>
 
-      <label for="direccion">Dirección con la que llegó el pedido</label>
+      <label for="direccion">Dirección con la que llegó el pedido <span class="note-inline">(no coloques la ciudad ni el departamento)</span></label>
       <textarea id="direccion" placeholder="" disabled></textarea>
 
       <button class="btn" id="btnScan" disabled>Analizar</button>
@@ -144,7 +161,10 @@ th{background:#00000008;}
 
       <div class="subpanel active" id="sub-coord">
         <label>Ciudad</label>
-        <input type="text" id="coordCiudad" placeholder="Ej: Quito">
+        <div class="field-with-copy">
+          <input type="text" id="coordCiudad" list="oficinasCityList" placeholder="Ej: Quito">
+          <button type="button" class="copy-icon-btn" data-copy-target="coordCiudad" title="Copiar">⧉</button>
+        </div>
         <div class="row">
           <div>
             <label>Coordenadas</label>
@@ -155,6 +175,8 @@ th{background:#00000008;}
             <input type="number" id="radiusInput" placeholder="Ej: 5">
           </div>
         </div>
+        <label>Dirección del cliente (opcional, si no tienes coordenadas)</label>
+        <input type="text" id="coordDireccion" placeholder="Pega aquí la dirección del cliente para buscar por texto">
         <button class="btn" id="btnCoord" type="button">Buscar</button>
         <button class="btn secondary" id="btnClearCoord" type="button">Limpiar</button>
         <div class="status-msg" id="statusCoord"></div>
@@ -163,7 +185,10 @@ th{background:#00000008;}
 
       <div class="subpanel" id="sub-text">
         <label>Ciudad (opcional)</label>
-        <input type="text" id="textCiudad" placeholder="Ej: Guayaquil">
+        <div class="field-with-copy">
+          <input type="text" id="textCiudad" list="oficinasCityList" placeholder="Ej: Guayaquil">
+          <button type="button" class="copy-icon-btn" data-copy-target="textCiudad" title="Copiar">⧉</button>
+        </div>
         <label>Palabra clave o dirección</label>
         <input type="text" id="textInput" placeholder="Calle, barrio, referencia…">
         <button class="btn" id="btnText" type="button">Buscar</button>
@@ -171,6 +196,7 @@ th{background:#00000008;}
         <div class="status-msg" id="statusText"></div>
         <div id="resultsText"></div>
       </div>
+      <datalist id="oficinasCityList"></datalist>
 
       <div class="subpanel" id="sub-batch">
         <label>Archivo (.xlsx o .csv) con columnas TRANSPORTADORA, DIRECCION, NOTAS, CIUDAD DESTINO, DEPARTAMENTO DESTINO, TELEFONO</label>
@@ -282,10 +308,10 @@ th{background:#00000008;}
 
   // ---------- Radar de Ciudades ----------
   var EXAMPLES = {
-    CO: {addr: "Bocagrande calle 8A #4-32 Edificio Bahía de Cartagena Apto 302, CARTAGENA - BOLIVAR", city: "Cartagena", dept: "Bolívar", unit:'municipio'},
-    EC: {addr: "Av. Amazonas y Naciones Unidas, Edificio Ciudad de Quito, Quito - Pichincha", city: "Quito", dept: "Pichincha", unit:'cantón'},
-    CL: {addr: "Av. Providencia 1208, depto 502, comuna de Providencia, Santiago - Región Metropolitana", city: "Providencia", dept: "Metropolitana", unit:'comuna'},
-    MX: {addr: "Av. Insurgentes Sur 1602, Col. Crédito Constructor, Ciudad de México - Ciudad de México", city: "Ciudad de México", dept: "Ciudad de México", unit:'municipio'}
+    CO: {addr: "Bocagrande calle 8A #4-32 Edificio Bahía de Cartagena Apto 302", city: "Cartagena", dept: "Bolívar", unit:'municipio'},
+    EC: {addr: "Av. Amazonas y Naciones Unidas, Edificio Ciudad de Quito", city: "Quito", dept: "Pichincha", unit:'cantón'},
+    CL: {addr: "Av. Providencia 1208, depto 502, comuna de Providencia", city: "Providencia", dept: "Metropolitana", unit:'comuna'},
+    MX: {addr: "Av. Insurgentes Sur 1602, Col. Crédito Constructor", city: "Ciudad de México", dept: "Ciudad de México", unit:'municipio'}
   };
   var paisSel = document.getElementById('pais');
   var declCiudad = document.getElementById('declCiudad');
@@ -301,23 +327,47 @@ th{background:#00000008;}
     declCiudad.value=''; declDepto.value=''; direccionEl.value='';
     document.getElementById('radarBanner').innerHTML=''; document.getElementById('radarMatchCard').innerHTML='';
     document.getElementById('autofillNote').textContent='';
+    document.getElementById('radarValidationMsg').textContent='';
   }
+  var declCiudadList = document.getElementById('declCiudadList');
+  var declDeptoList = document.getElementById('declDeptoList');
+
   paisSel.addEventListener('change', function(){
     var code = paisSel.value;
     clearRadarFields();
-    if (!code){ setRadarEnabled(false); declCiudad.placeholder=''; declDepto.placeholder=''; direccionEl.placeholder=''; return; }
+    if (!code){ setRadarEnabled(false); declCiudad.placeholder=''; declDepto.placeholder=''; direccionEl.placeholder=''; declCiudadList.innerHTML=''; declDeptoList.innerHTML=''; return; }
     setRadarEnabled(true);
     var ex = EXAMPLES[code];
-    var unitCap = ex.unit.charAt(0).toUpperCase() + ex.unit.slice(1);
-    document.getElementById('lblCiudad').textContent = unitCap + ' con la que llegó el pedido';
     declCiudad.placeholder = 'Ej: ' + ex.city;
     declDepto.placeholder = 'Ej: ' + ex.dept;
     direccionEl.placeholder = 'Ej: ' + ex.addr;
+    api('radar-catalog', { pais: code }).then(function(res){
+      if (res.error) return;
+      declCiudadList.innerHTML = res.ciudades.map(function(c){ return '<option value="' + esc(c.ciudad) + '">'; }).join('');
+      declDeptoList.innerHTML = res.departamentos.map(function(d){ return '<option value="' + esc(d) + '">'; }).join('');
+    }).catch(function(){});
   });
   btnClearRadar.addEventListener('click', clearRadarFields);
 
+  document.querySelectorAll('.copy-icon-btn').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var target = document.getElementById(btn.getAttribute('data-copy-target'));
+      if (!target || !target.value) return;
+      copyText(target.value).then(function(){
+        var prev = btn.textContent; btn.textContent = '✓';
+        setTimeout(function(){ btn.textContent = prev; }, 1200);
+      }).catch(function(){});
+    });
+  });
+
   btnScan.addEventListener('click', function(){
     if (!paisSel.value) return;
+    var valMsg = document.getElementById('radarValidationMsg');
+    valMsg.textContent = '';
+    if (!declCiudad.value.trim() || !declDepto.value.trim()){
+      valMsg.textContent = 'La ciudad y el departamento son obligatorios para analizar la dirección.';
+      return;
+    }
     api('radar-scan', {
       pais: paisSel.value, direccion: direccionEl.value,
       ciudad: declCiudad.value, departamento: declDepto.value
@@ -362,29 +412,47 @@ th{background:#00000008;}
     }
   }
 
+  // ---------- Oficinas: catálogo de ciudades (desplegable) ----------
+  var oficinasCatalogLoaded = false;
+  function loadOficinasCatalog(){
+    if (oficinasCatalogLoaded || !TOKEN) return;
+    oficinasCatalogLoaded = true;
+    api('oficinas-catalog', {}).then(function(res){
+      if (res.ciudades){
+        document.getElementById('oficinasCityList').innerHTML = res.ciudades.map(function(c){ return '<option value="' + esc(c) + '">'; }).join('');
+      }
+    }).catch(function(){ oficinasCatalogLoaded = false; });
+  }
+  buttons.oficinas.addEventListener('click', loadOficinasCatalog);
+
   // ---------- Oficinas: coordenadas ----------
   document.getElementById('btnCoord').addEventListener('click', function(){
     var status = document.getElementById('statusCoord');
     status.className = 'status-msg'; status.textContent = '';
-    api('oficinas-coord', { ciudad: document.getElementById('coordCiudad').value, coord: document.getElementById('coordInput').value, radius: document.getElementById('radiusInput').value })
-      .then(function(res){
+    api('oficinas-coord', {
+      ciudad: document.getElementById('coordCiudad').value,
+      coord: document.getElementById('coordInput').value,
+      radius: document.getElementById('radiusInput').value,
+      direccion: document.getElementById('coordDireccion').value
+    }).then(function(res){
         var wrap = document.getElementById('resultsCoord');
         if (!res.ok){
-          if (res.coordError){ status.textContent = 'No pude leer coordenadas ahí — pega "lat, lon" o un enlace de Google Maps.'; status.className='status-msg err'; wrap.innerHTML=''; return; }
+          if (res.coordError){ status.textContent = 'No pude leer coordenadas ahí — pega "lat, lon", un enlace de Google Maps, o escribe la dirección del cliente en el campo de abajo.'; status.className='status-msg err'; wrap.innerHTML=''; return; }
           if (res.cityStatus === 'ambiguous'){ status.textContent = 'Hay varias ciudades que calzan: ' + (res.options||[]).slice(0,6).join(', ') + '. Escribe el nombre completo.'; status.className='status-msg err'; wrap.innerHTML=''; return; }
           if (res.cityStatus === 'notfound'){ status.textContent = 'No encontré esa ciudad — revisa la ortografía.'; status.className='status-msg err'; wrap.innerHTML=''; return; }
           status.textContent = 'No se pudo completar la búsqueda.'; status.className='status-msg err'; wrap.innerHTML=''; return;
         }
         if (res.outOfEcuador) status.textContent = 'Esas coordenadas quedan fuera de Ecuador — revisa el dato antes de buscar.';
-        if (!res.results.length){ wrap.innerHTML = '<div class="card">No hay agencias con coordenadas confiables' + (res.city ? ' en ' + esc(res.city) : '') + '.</div>'; return; }
+        if (res.mode === 'texto' && !status.textContent) status.textContent = 'Sin coordenadas — mostrando resultados por parecido de texto con la dirección.';
+        if (!res.results.length){ wrap.innerHTML = '<div class="card">No hay agencias' + (res.mode==='coordenadas' ? ' con coordenadas confiables' : '') + (res.city ? ' en ' + esc(res.city) : '') + '.</div>'; return; }
         wrap.innerHTML = res.results.map(function(w,i){
-          var label = w.distKm < 1 ? Math.round(w.distKm*1000)+' m' : w.distKm.toFixed(1)+' km';
-          return cardHtml(w.item, label);
+          var label = w.distKm == null ? null : (w.distKm < 1 ? Math.round(w.distKm*1000)+' m' : w.distKm.toFixed(1)+' km');
+          return cardHtml(w.item, label, i);
         }).join('');
       }).catch(function(){});
   });
   document.getElementById('btnClearCoord').addEventListener('click', function(){
-    document.getElementById('coordCiudad').value=''; document.getElementById('coordInput').value=''; document.getElementById('radiusInput').value='';
+    document.getElementById('coordCiudad').value=''; document.getElementById('coordInput').value=''; document.getElementById('radiusInput').value=''; document.getElementById('coordDireccion').value='';
     document.getElementById('resultsCoord').innerHTML=''; document.getElementById('statusCoord').textContent='';
   });
 
@@ -402,11 +470,11 @@ th{background:#00000008;}
           status.className='status-msg err'; wrap.innerHTML=''; return;
         }
         if (res.onlyOne){
-          wrap.innerHTML = '<div class="sub">' + esc(res.city) + ' tiene una sola agencia registrada — es esta:</div>' + cardHtml(res.results[0], null);
+          wrap.innerHTML = '<div class="sub">' + esc(res.city) + ' tiene una sola agencia registrada — es esta:</div>' + cardHtml(res.results[0], null, 0);
           return;
         }
         if (!res.results.length){ wrap.innerHTML = '<div class="card">Sin coincidencias' + (res.city ? ' en ' + esc(res.city) : '') + '. Prueba con otra palabra o elige una ciudad.</div>'; return; }
-        wrap.innerHTML = res.results.map(function(item){ return cardHtml(item, null); }).join('') +
+        wrap.innerHTML = res.results.map(function(item, i){ return cardHtml(item, null, i); }).join('') +
           (res.totalMatches > res.results.length ? '<div class="sub">+' + (res.totalMatches - res.results.length) + ' resultado(s) más — afina la búsqueda.</div>' : '');
       }).catch(function(){});
   });
@@ -415,13 +483,15 @@ th{background:#00000008;}
     document.getElementById('resultsText').innerHTML=''; document.getElementById('statusText').textContent='';
   });
 
-  function cardHtml(item, distLabel){
+  function cardHtml(item, distLabel, rankIndex){
     var mapsHref = (item.lat != null && item.lon != null)
       ? 'https://www.google.com/maps/search/?api=1&query=' + item.lat + ',' + item.lon
       : 'https://www.google.com/maps/search/' + encodeURIComponent(item.direccion + ' ' + item.ciudad + ' Ecuador');
+    var fullAddr = 'OF. SERVIENTREGA ' + item.direccion;
+    var rankHtml = (rankIndex != null) ? '<span class="rank-badge">' + (rankIndex + 1) + '</span>' : '';
     return '<div class="card">' +
-      '<div class="card-top"><span>' + esc(item.ciudad) + '</span>' + (distLabel ? '<span>' + distLabel + '</span>' : '') + '</div>' +
-      '<div class="card-addr">' + esc(item.direccion) + '</div>' +
+      '<div class="card-top"><span>' + rankHtml + esc(item.ciudad) + '</span>' + (distLabel ? '<span>' + distLabel + '</span>' : '') + '</div>' +
+      '<div class="card-copy-row"><span class="card-addr">' + esc(fullAddr) + '</span><button type="button" class="card-addr-copy-btn" data-addr="' + esc(fullAddr) + '">Copiar</button></div>' +
       (item.horarioNormal ? '<div class="sub">🕓 ' + esc(item.horarioNormal) + (item.horarioEspecial ? ' · Feriados/especial: ' + esc(item.horarioEspecial) : '') + '</div>' : '') +
       '<div class="card-meta"><span class="tag">' + esc(item.tipo) + '</span><span>' + esc(item.provincia) + '</span>' +
       (item.telefono ? '<span>☎ ' + esc(item.telefono) + '</span>' : '') + '<span>' + esc(item.sucursal) + '</span>' +
@@ -429,6 +499,16 @@ th{background:#00000008;}
       '<div style="margin-top:.4rem"><a href="' + mapsHref + '" target="_blank" rel="noopener">Ver en Google Maps →</a></div>' +
       '</div>';
   }
+
+  document.getElementById('panel-oficinas').addEventListener('click', function(e){
+    var btn = e.target.closest ? e.target.closest('.card-addr-copy-btn') : null;
+    if (!btn) return;
+    var text = btn.getAttribute('data-addr');
+    copyText(text).then(function(){
+      var prev = btn.textContent; btn.textContent = 'Copiado ✓';
+      setTimeout(function(){ btn.textContent = prev; }, 1500);
+    }).catch(function(){});
+  });
 
   // ---------- Oficinas: carga masiva ----------
   var pendingFile = null;

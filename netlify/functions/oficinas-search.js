@@ -1,5 +1,5 @@
 const { requireAuth, unauthorized, json } = require('./_lib/auth');
-const { DATA, resolveCity, rankAgencies, normText, toPublic } = require('./_lib/agencias-engine');
+const { DATA, resolveCity, rankAgencies, partialMatch, toPublic } = require('./_lib/agencias-engine');
 
 exports.handler = async function (event) {
   if (event.httpMethod !== 'POST') return json(405, { error: 'method_not_allowed' });
@@ -34,12 +34,11 @@ exports.handler = async function (event) {
     if (scored.length) {
       matches = scored.map((s) => s.agency);
     } else {
-      const needle = normText(raw);
-      const terms = needle.split(/\s+/).filter(Boolean);
-      matches = pool.filter((d) => {
-        const hay = normText(d.direccion + ' ' + d.sucursal + ' ' + d.ciudad);
-        return terms.every((t) => hay.indexOf(t) !== -1);
-      });
+      // Nadie tuvo coincidencia por palabras/números — se muestra la mejor
+      // coincidencia PARCIAL (agencias que comparten al menos un dato con el
+      // texto, ordenadas por cuántos coinciden) en vez de dejar la búsqueda vacía.
+      const partial = partialMatch(raw, pool);
+      matches = partial.map((p) => p.agency);
     }
   }
 
