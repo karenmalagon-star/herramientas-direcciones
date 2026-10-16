@@ -7,34 +7,38 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
 :root{
-  --bg:#EDEAE2; --bar:#211E19; --bar-ink:#F1EDE2; --bar-ink-dim:#B6AC97;
-  --accent:#0F6E5C; --border:#D9D3C2; --card:#FFFFFF; --text:#211E19; --text-faint:#7A7364;
-  --alert-bg:#FBE9E7; --alert-ink:#8B2E22; --warn-bg:#FFF4D9; --warn-ink:#7A5B0A; --ok-bg:#E4F3EC; --ok-ink:#0F6E5C;
+  /* Colores de marca Fénix Ventures */
+  --brand-yellow:#FFD030; --brand-yellow-bright:#FDEE21; --brand-green-dark:#00682D; --brand-green:#178838; --brand-green-light:#36B238;
+  --bg:#FFF8E1; --bar:#FFD030; --bar-ink:#00682D; --bar-ink-dim:#00682D;
+  --accent:#00682D; --border:#E6DDB8; --card:#FFFFFF; --text:#16201A; --text-faint:#6B6A55;
+  --alert-bg:#FBE9E7; --alert-ink:#8B2E22; --warn-bg:#FFF1C2; --warn-ink:#7A5B0A; --ok-bg:#E4F3EC; --ok-ink:#00682D;
   --font-body:'IBM Plex Sans', -apple-system, Segoe UI, sans-serif;
   --font-mono:'IBM Plex Mono', 'SFMono-Regular', Consolas, monospace;
 }
 *{box-sizing:border-box;}
 html,body{margin:0;padding:0;}
 body{background:var(--bg);color:var(--text);font-family:var(--font-body);-webkit-font-smoothing:antialiased;min-height:100vh;}
-.tabbar{position:sticky;top:0;z-index:10;background:var(--bar);color:var(--bar-ink);display:flex;align-items:center;gap:.25rem;padding:.6rem .9rem;border-bottom:1px solid var(--border);}
-.tabbar .suite-label{font-family:var(--font-mono);font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;color:var(--bar-ink-dim);padding:0 .8rem 0 .3rem;flex:none;}
+.tabbar{position:sticky;top:0;z-index:10;background:var(--bar);color:var(--bar-ink);display:flex;align-items:center;gap:.6rem;padding:.45rem .9rem;border-bottom:3px solid var(--brand-green-dark);}
+.tabbar .brand-logo{height:44px;width:44px;display:block;flex:none;}
+.tabbar .suite-label{font-family:var(--font-body);font-size:1rem;font-weight:700;letter-spacing:-.005em;color:var(--bar-ink);flex:none;}
+.tabbar .suite-label small{display:block;font-family:var(--font-mono);font-size:.62rem;font-weight:400;letter-spacing:.1em;text-transform:uppercase;}
 .tab-btn{appearance:none;border:none;background:transparent;color:var(--bar-ink-dim);font-family:var(--font-body);font-weight:600;font-size:.88rem;padding:.55rem 1rem;border-radius:8px;cursor:pointer;}
 .tab-btn:hover{background:rgba(255,255,255,0.06);color:var(--bar-ink);}
-.tab-btn.active{background:var(--accent);color:#0B1512;}
-.logout{margin-left:auto;background:transparent;border:1px solid var(--bar-ink-dim);color:var(--bar-ink-dim);font-size:.75rem;padding:.35rem .7rem;border-radius:6px;cursor:pointer;}
-.logout:hover{color:var(--bar-ink);border-color:var(--bar-ink);}
+.tab-btn.active{background:var(--accent);color:#fff;}
+.logout{margin-left:auto;background:transparent;border:1px solid var(--brand-green-dark);color:var(--brand-green-dark);font-weight:600;font-size:.75rem;padding:.35rem .7rem;border-radius:6px;cursor:pointer;}
+.logout:hover{background:var(--brand-green-dark);color:#fff;}
 .wrap{max-width:1180px;margin:0 auto;padding:1.5rem 1rem 3rem;}
 #panel-radar,#panel-oficinas{max-width:900px;}
 .countrybar{background:var(--card);border-bottom:1px solid var(--border);padding:.6rem .9rem;display:flex;gap:.4rem;flex-wrap:wrap;}
 .cpill{appearance:none;border:1px solid var(--border);background:var(--card);color:var(--text);font-family:var(--font-body);font-weight:600;font-size:.85rem;padding:.45rem .8rem;border-radius:8px;cursor:pointer;display:inline-flex;gap:.45rem;align-items:center;}
 .cpill small{font-family:var(--font-mono);font-weight:400;font-size:.68rem;color:var(--text-faint);}
 .cpill:hover{border-color:var(--accent);}
-.cpill.active{background:var(--accent);border-color:var(--accent);color:#fff;}
+.cpill.active{background:var(--brand-green-dark);border-color:var(--brand-green-dark);color:#fff;box-shadow:inset 0 -3px 0 var(--brand-yellow);}
 .cpill.active small{color:#fff;opacity:.75;}
-.sectionbar{background:var(--bg);border-bottom:1px solid var(--border);padding:0 .9rem;display:flex;gap:.2rem;overflow-x:auto;}
+.sectionbar{background:#FFF1BF;border-bottom:1px solid var(--border);padding:0 .9rem;display:flex;gap:.2rem;overflow-x:auto;}
 .sec-btn{appearance:none;border:none;background:transparent;color:var(--text-faint);font-family:var(--font-body);font-weight:600;font-size:.9rem;padding:.85rem .9rem;cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;}
 .sec-btn:hover{color:var(--text);}
-.sec-btn.active{color:var(--accent);border-bottom-color:var(--accent);}
+.sec-btn.active{color:var(--brand-green-dark);border-bottom-color:var(--brand-green-dark);border-bottom-width:3px;}
 .country-head{display:flex;align-items:baseline;gap:.7rem;flex-wrap:wrap;margin-bottom:1.1rem;}
 .country-head h1{font-size:1.5rem;margin:0;letter-spacing:-.01em;}
 .country-head .code{font-family:var(--font-mono);font-size:.72rem;background:var(--accent);color:#fff;padding:.15rem .5rem;border-radius:6px;}
@@ -95,8 +99,9 @@ th{background:#00000008;}
 .stat-row{display:flex;gap:1rem;margin-top:1rem;flex-wrap:wrap;}
 .stat{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:.6rem 1rem;font-size:.82rem;min-width:100px;}
 .stat b{display:block;font-size:1.2rem;}
-#gate{min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--bar);}
-#gate .box{background:var(--card);border-radius:14px;padding:2rem;max-width:340px;width:90%;text-align:center;}
+#gate{min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--brand-yellow);}
+#gate .box{background:var(--card);border-radius:14px;padding:2rem;max-width:340px;width:90%;text-align:center;border-top:5px solid var(--brand-green-dark);box-shadow:0 6px 24px rgba(0,104,45,.18);}
+#gate .box img{width:88px;height:88px;display:block;margin:0 auto .6rem;border-radius:50%;}
 #gate h1{font-size:1.05rem;margin:0 0 1rem;}
 #gate input{margin-bottom:.7rem;}
 #gate .err{color:var(--alert-ink);font-size:.82rem;min-height:1.2rem;margin-top:.3rem;}
@@ -107,7 +112,7 @@ th{background:#00000008;}
 
 <div id="gate">
   <div class="box">
-    <h1>Herramientas de Direcciones · Fenix Ventures</h1>
+    <img src="logo.png" alt="Fénix Ventures"><h1>Herramientas de Direcciones · Fénix Ventures</h1>
     <input type="password" id="gatePw" placeholder="Contraseña del equipo" autocomplete="current-password">
     <button class="btn" id="gateBtn" style="width:100%;margin-top:0;">Entrar</button>
     <div class="err" id="gateErr"></div>
@@ -116,7 +121,7 @@ th{background:#00000008;}
 
 <div id="app">
   <nav class="tabbar">
-    <span class="suite-label">Herramientas · Fenix Ventures</span>
+    <img class="brand-logo" src="logo.png" alt="Fénix Ventures"><span class="suite-label">Fénix Ventures<small>Herramientas de direcciones</small></span>
     <button class="logout" id="btnLogout" type="button">Cerrar sesión</button>
   </nav>
   <div class="countrybar" id="countryBar" role="group" aria-label="País"></div>
