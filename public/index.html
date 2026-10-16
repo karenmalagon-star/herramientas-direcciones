@@ -23,7 +23,22 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-body);-webkit
 .tab-btn.active{background:var(--accent);color:#0B1512;}
 .logout{margin-left:auto;background:transparent;border:1px solid var(--bar-ink-dim);color:var(--bar-ink-dim);font-size:.75rem;padding:.35rem .7rem;border-radius:6px;cursor:pointer;}
 .logout:hover{color:var(--bar-ink);border-color:var(--bar-ink);}
-.wrap{max-width:900px;margin:0 auto;padding:1.5rem 1rem 3rem;}
+.wrap{max-width:1180px;margin:0 auto;padding:1.5rem 1rem 3rem;}
+#panel-radar,#panel-oficinas{max-width:900px;}
+.countrybar{background:var(--card);border-bottom:1px solid var(--border);padding:.6rem .9rem;display:flex;gap:.4rem;flex-wrap:wrap;}
+.cpill{appearance:none;border:1px solid var(--border);background:var(--card);color:var(--text);font-family:var(--font-body);font-weight:600;font-size:.85rem;padding:.45rem .8rem;border-radius:8px;cursor:pointer;display:inline-flex;gap:.45rem;align-items:center;}
+.cpill small{font-family:var(--font-mono);font-weight:400;font-size:.68rem;color:var(--text-faint);}
+.cpill:hover{border-color:var(--accent);}
+.cpill.active{background:var(--accent);border-color:var(--accent);color:#fff;}
+.cpill.active small{color:#fff;opacity:.75;}
+.sectionbar{background:var(--bg);border-bottom:1px solid var(--border);padding:0 .9rem;display:flex;gap:.2rem;overflow-x:auto;}
+.sec-btn{appearance:none;border:none;background:transparent;color:var(--text-faint);font-family:var(--font-body);font-weight:600;font-size:.9rem;padding:.85rem .9rem;cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;}
+.sec-btn:hover{color:var(--text);}
+.sec-btn.active{color:var(--accent);border-bottom-color:var(--accent);}
+.country-head{display:flex;align-items:baseline;gap:.7rem;flex-wrap:wrap;margin-bottom:1.1rem;}
+.country-head h1{font-size:1.5rem;margin:0;letter-spacing:-.01em;}
+.country-head .code{font-family:var(--font-mono);font-size:.72rem;background:var(--accent);color:#fff;padding:.15rem .5rem;border-radius:6px;}
+.country-head .tag-line{color:var(--text-faint);font-size:.85rem;}
 .panel{display:none;} .panel.active{display:block;}
 h2{font-size:1.15rem;margin:0 0 .3rem;}
 .sub{color:var(--text-faint);font-size:.85rem;margin:0 0 1.2rem;}
@@ -49,6 +64,9 @@ textarea{min-height:90px;resize:vertical;}
 .copy-icon-btn{flex:none;border:1px solid var(--border);background:var(--card);border-radius:8px;padding:0 .6rem;cursor:pointer;font-size:1rem;color:var(--text-faint);}
 .copy-icon-btn:hover{color:var(--text);}
 .rank-badge{display:inline-flex;align-items:center;justify-content:center;width:1.4rem;height:1.4rem;border-radius:999px;background:var(--accent);color:#fff;font-size:.72rem;font-weight:700;margin-right:.4rem;}
+.match-type-tag{font-size:.7rem;font-weight:700;padding:.15rem .55rem;border-radius:999px;white-space:nowrap;}
+.match-type-tag.geo{background:var(--ok-bg);color:var(--ok-ink);}
+.match-type-tag.texto{background:var(--warn-bg);color:var(--warn-ink);}
 .card-copy-row{display:flex;align-items:center;gap:.5rem;margin:.3rem 0;}
 .card-addr-copy-btn{flex:none;font-size:.72rem;padding:.2rem .5rem;border-radius:6px;border:1px solid var(--border);background:var(--card);cursor:pointer;}
 .match-card{margin-top:1rem;border:1px solid var(--border);border-radius:10px;padding:.9rem 1rem;background:var(--card);}
@@ -99,18 +117,19 @@ th{background:#00000008;}
 <div id="app">
   <nav class="tabbar">
     <span class="suite-label">Herramientas · Fenix Ventures</span>
-    <button class="tab-btn active" id="btn-radar" type="button">Radar de Ciudades</button>
-    <button class="tab-btn" id="btn-oficinas" type="button">Oficinas</button>
     <button class="logout" id="btnLogout" type="button">Cerrar sesión</button>
   </nav>
+  <div class="countrybar" id="countryBar" role="group" aria-label="País"></div>
+  <div class="sectionbar" id="sectionBar" role="tablist" aria-label="Herramientas del país"></div>
 
-  <div class="wrap">
-    <section class="panel active" id="panel-radar">
-      <h2>Radar de Ciudades</h2>
+  <div class="wrap" id="mainWrap">
+    <div class="country-head" id="countryHead"></div>
+    <section class="panel" id="panel-radar">
+      <h2>Radar de ciudades</h2>
       <p class="sub">Detecta si la dirección menciona una ciudad real distinta a la declarada por el pedido (posible barrio homónimo mal clasificado).</p>
 
-      <label for="pais">País</label>
-      <select id="pais">
+      <label for="pais" style="display:none">País</label>
+      <select id="pais" style="display:none">
         <option value="">— Seleccionar país —</option>
         <option value="CO">Colombia</option>
         <option value="EC">Ecuador</option>
@@ -214,12 +233,18 @@ th{background:#00000008;}
         <div id="batchTableWrap" style="overflow-x:auto"></div>
       </div>
     </section>
+
+    <section class="panel" id="panel-fichas">
+      <div id="fichasHost"></div>
+    </section>
   </div>
 </div>
 
+<script src="fichas.js"></script>
 <script>
 (function(){
   var TOKEN = null;
+  var navReady = false;
 
   function api(path, payload){
     return fetch('/.netlify/functions/' + path, {
@@ -247,6 +272,7 @@ th{background:#00000008;}
   function showApp(){
     gate.style.display = 'none';
     app.style.display = 'block';
+    if (navReady) renderNav();
   }
 
   function doLogin(){
@@ -279,22 +305,56 @@ th{background:#00000008;}
   }
   document.getElementById('btnLogout').addEventListener('click', function(){ doLogout(''); });
 
-  try {
-    var saved = sessionStorage.getItem('hd_token');
-    if (saved) { TOKEN = saved; showApp(); }
-  } catch(e){}
+  // ---------- Navegación: país → herramientas del país ----------
+  var COUNTRIES = [
+    {k:'co', n:'Colombia', c:'CO'}, {k:'mx', n:'México', c:'MX'}, {k:'gt', n:'Guatemala', c:'GT'}, {k:'cl', n:'Chile', c:'CL'},
+    {k:'ec', n:'Ecuador', c:'EC'}, {k:'pa', n:'Panamá', c:'PA'}, {k:'ar', n:'Argentina', c:'AR'}, {k:'py', n:'Paraguay', c:'PY'}
+  ];
+  var RADAR_OK = {co:1, mx:1, cl:1, ec:1};   // países con catálogo de ciudades para el radar
+  var nav = {c:'co', s:'dir'};
+  try { var sv = JSON.parse(localStorage.getItem('hd_nav') || '{}'); if (sv.c) nav.c = sv.c; if (sv.s) nav.s = sv.s; } catch(e){}
+  var fichasCtl = null;
 
-  // ---------- Tabs ----------
-  var buttons = { radar: document.getElementById('btn-radar'), oficinas: document.getElementById('btn-oficinas') };
-  var panels = { radar: document.getElementById('panel-radar'), oficinas: document.getElementById('panel-oficinas') };
-  function activate(name){
-    Object.keys(buttons).forEach(function(k){
-      buttons[k].classList.toggle('active', k === name);
-      panels[k].classList.toggle('active', k === name);
-    });
+  function sectionsFor(k){
+    var a = [['dir','Direcciones'], ['tra','Transportadoras']];
+    if (RADAR_OK[k]) a.push(['radar','Radar de ciudades']);
+    if (k === 'ec') a.push(['oficinas','Oficinas']);
+    return a;
   }
-  buttons.radar.addEventListener('click', function(){ activate('radar'); });
-  buttons.oficinas.addEventListener('click', function(){ activate('oficinas'); });
+  function countryObj(k){ return COUNTRIES.filter(function(c){ return c.k === k; })[0] || COUNTRIES[0]; }
+
+  function renderNav(){
+    var co = countryObj(nav.c); nav.c = co.k;
+    var secs = sectionsFor(nav.c);
+    if (!secs.some(function(x){ return x[0] === nav.s; })) nav.s = 'dir';
+    try { localStorage.setItem('hd_nav', JSON.stringify(nav)); } catch(e){}
+
+    var cb = document.getElementById('countryBar');
+    cb.innerHTML = COUNTRIES.map(function(c){ return '<button type="button" class="cpill' + (c.k === nav.c ? ' active' : '') + '" data-c="' + c.k + '">' + esc(c.n) + '<small>' + c.c + '</small></button>'; }).join('');
+    cb.querySelectorAll('[data-c]').forEach(function(b){ b.onclick = function(){ nav.c = b.getAttribute('data-c'); renderNav(); }; });
+
+    var sb = document.getElementById('sectionBar');
+    sb.innerHTML = secs.map(function(x){ return '<button type="button" role="tab" class="sec-btn' + (x[0] === nav.s ? ' active' : '') + '" data-s="' + x[0] + '">' + esc(x[1]) + '</button>'; }).join('');
+    sb.querySelectorAll('[data-s]').forEach(function(b){ b.onclick = function(){ nav.s = b.getAttribute('data-s'); renderNav(); }; });
+
+    document.getElementById('countryHead').innerHTML = '<h1>' + esc(co.n) + '</h1><span class="code">' + co.c + '</span><span class="tag-line">Herramientas de apoyo para agentes</span>';
+
+    var isFichas = nav.s === 'dir' || nav.s === 'tra';
+    document.getElementById('panel-fichas').classList.toggle('active', isFichas);
+    document.getElementById('panel-radar').classList.toggle('active', nav.s === 'radar');
+    document.getElementById('panel-oficinas').classList.toggle('active', nav.s === 'oficinas');
+    document.getElementById('mainWrap').classList.toggle('wide', isFichas);
+
+    if (isFichas && TOKEN && window.initFichas){
+      if (!fichasCtl) fichasCtl = window.initFichas(document.getElementById('fichasHost'), api);
+      fichasCtl.show(nav.c, nav.s);
+    }
+    if (nav.s === 'radar' && TOKEN){
+      var code = co.c;
+      if (paisSel.value !== code){ paisSel.value = code; paisSel.dispatchEvent(new Event('change')); }
+    }
+    if (nav.s === 'oficinas') loadOficinasCatalog();
+  }
 
   var subtabs = document.querySelectorAll('.subtab');
   subtabs.forEach(function(btn){
@@ -423,7 +483,6 @@ th{background:#00000008;}
       }
     }).catch(function(){ oficinasCatalogLoaded = false; });
   }
-  buttons.oficinas.addEventListener('click', loadOficinasCatalog);
 
   // ---------- Oficinas: coordenadas ----------
   document.getElementById('btnCoord').addEventListener('click', function(){
@@ -443,11 +502,12 @@ th{background:#00000008;}
           status.textContent = 'No se pudo completar la búsqueda.'; status.className='status-msg err'; wrap.innerHTML=''; return;
         }
         if (res.outOfEcuador) status.textContent = 'Esas coordenadas quedan fuera de Ecuador — revisa el dato antes de buscar.';
-        if (res.mode === 'texto' && !status.textContent) status.textContent = 'Sin coordenadas — mostrando resultados por parecido de texto con la dirección.';
+        if (res.mode === 'texto' && !status.textContent) status.textContent = 'Sin coordenadas — mostrando resultados por parecido de texto con la dirección (no es distancia real).';
         if (!res.results.length){ wrap.innerHTML = '<div class="card">No hay agencias' + (res.mode==='coordenadas' ? ' con coordenadas confiables' : '') + (res.city ? ' en ' + esc(res.city) : '') + '.</div>'; return; }
+        var matchType = res.mode === 'coordenadas' ? 'geo' : 'texto';
         wrap.innerHTML = res.results.map(function(w,i){
           var label = w.distKm == null ? null : (w.distKm < 1 ? Math.round(w.distKm*1000)+' m' : w.distKm.toFixed(1)+' km');
-          return cardHtml(w.item, label, i);
+          return cardHtml(w.item, label, i, matchType);
         }).join('');
       }).catch(function(){});
   });
@@ -470,11 +530,11 @@ th{background:#00000008;}
           status.className='status-msg err'; wrap.innerHTML=''; return;
         }
         if (res.onlyOne){
-          wrap.innerHTML = '<div class="sub">' + esc(res.city) + ' tiene una sola agencia registrada — es esta:</div>' + cardHtml(res.results[0], null, 0);
+          wrap.innerHTML = '<div class="sub">' + esc(res.city) + ' tiene una sola agencia registrada — es esta:</div>' + cardHtml(res.results[0], null, 0, null);
           return;
         }
         if (!res.results.length){ wrap.innerHTML = '<div class="card">Sin coincidencias' + (res.city ? ' en ' + esc(res.city) : '') + '. Prueba con otra palabra o elige una ciudad.</div>'; return; }
-        wrap.innerHTML = res.results.map(function(item, i){ return cardHtml(item, null, i); }).join('') +
+        wrap.innerHTML = res.results.map(function(item, i){ return cardHtml(item, null, i, 'texto'); }).join('') +
           (res.totalMatches > res.results.length ? '<div class="sub">+' + (res.totalMatches - res.results.length) + ' resultado(s) más — afina la búsqueda.</div>' : '');
       }).catch(function(){});
   });
@@ -483,14 +543,18 @@ th{background:#00000008;}
     document.getElementById('resultsText').innerHTML=''; document.getElementById('statusText').textContent='';
   });
 
-  function cardHtml(item, distLabel, rankIndex){
+  function cardHtml(item, distLabel, rankIndex, matchType){
     var mapsHref = (item.lat != null && item.lon != null)
       ? 'https://www.google.com/maps/search/?api=1&query=' + item.lat + ',' + item.lon
       : 'https://www.google.com/maps/search/' + encodeURIComponent(item.direccion + ' ' + item.ciudad + ' Ecuador');
     var fullAddr = 'OF. SERVIENTREGA ' + item.direccion;
     var rankHtml = (rankIndex != null) ? '<span class="rank-badge">' + (rankIndex + 1) + '</span>' : '';
+    var tagHtml = '';
+    if (matchType === 'geo') tagHtml = '<span class="match-type-tag geo">Más cercana</span>';
+    else if (matchType === 'texto') tagHtml = '<span class="match-type-tag texto">Coincide con la dirección</span>';
+    var rightHtml = [distLabel ? '<span>' + distLabel + '</span>' : '', tagHtml].filter(Boolean).join(' ');
     return '<div class="card">' +
-      '<div class="card-top"><span>' + rankHtml + esc(item.ciudad) + '</span>' + (distLabel ? '<span>' + distLabel + '</span>' : '') + '</div>' +
+      '<div class="card-top"><span>' + rankHtml + esc(item.ciudad) + '</span>' + (rightHtml ? '<span>' + rightHtml + '</span>' : '') + '</div>' +
       '<div class="card-copy-row"><span class="card-addr">' + esc(fullAddr) + '</span><button type="button" class="card-addr-copy-btn" data-addr="' + esc(fullAddr) + '">Copiar</button></div>' +
       (item.horarioNormal ? '<div class="sub">🕓 ' + esc(item.horarioNormal) + (item.horarioEspecial ? ' · Feriados/especial: ' + esc(item.horarioEspecial) : '') + '</div>' : '') +
       '<div class="card-meta"><span class="tag">' + esc(item.tipo) + '</span><span>' + esc(item.provincia) + '</span>' +
@@ -657,6 +721,11 @@ th{background:#00000008;}
     document.getElementById('btnDownloadCsv').style.display = 'none';
     document.getElementById('batchTableWrap').innerHTML = '';
   });
+  navReady = true;
+  try {
+    var saved = sessionStorage.getItem('hd_token');
+    if (saved) { TOKEN = saved; showApp(); }
+  } catch(e){}
 })();
 </script>
 </body>
